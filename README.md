@@ -8,3 +8,6 @@ Kibana
 
 collectors
 Telegram
+
+ai
+phi-2 summary report for the day
