@@ -3,7 +3,7 @@ A CTI tool hunting for breaches using SockPuppet accounts.
 
 Todo:
 Elastic
-Logstash
+Logstash (ingestor - local disk (with zst compression support), cti downloads)
 Kibana
 
 collectors
@@ -14,3 +14,4 @@ phi-2 summary report for the day
 
 todo cti tools support
 thehive, recorded future, opencti
+
