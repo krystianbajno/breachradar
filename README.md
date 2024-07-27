@@ -8,6 +8,8 @@ Kibana
 
 collectors
 Telegram
+Bins
+Forums
 
 ai
 phi-2 summary report for the day
