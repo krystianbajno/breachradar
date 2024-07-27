@@ -10,6 +10,7 @@ collectors
 Telegram
 Bins
 Forums
+Notify on torrents
 
 ai
 phi-2 summary report for the day
