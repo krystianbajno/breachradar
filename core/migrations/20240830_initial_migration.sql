@@ -13,8 +13,7 @@ CREATE TABLE IF NOT EXISTS scrapes (
     state VARCHAR NOT NULL,
     timestamp TIMESTAMP,
     occurrence_time TIMESTAMP,
-    processing_start_time TIMESTAMP,
-    content BYTEA
+    processing_start_time TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS elastic_chunks (

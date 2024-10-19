@@ -2,8 +2,8 @@ class AppEntityProvider:
     def __init__(self, app):
         self.app = app
 
-    def register(self):
+    async def register(self):
         pass
 
-    def boot(self):
+    async def boot(self):
         pass

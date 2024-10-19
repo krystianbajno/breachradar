@@ -3,6 +3,7 @@ data/scraps/*
 data/postgres_data/
 data/es_data/*
 data/local_ingest_processed/
+venv
 
 .env
 .env.local

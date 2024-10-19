@@ -1,6 +1,5 @@
 import logging
-import time
-
+import asyncio
 from core.app import App
 from core.config.config import Config
 from core.ecs.ecs_manager import ECSManager
@@ -8,7 +7,7 @@ from core.providers.app_entity_provider import AppEntityProvider
 from core.providers.app_service_provider import AppServiceProvider
 from core.providers.app_system_provider import AppSystemProvider
 
-def main():
+async def main():
     logging.basicConfig(level=logging.INFO)
     config = Config()
     app = App()
@@ -16,17 +15,14 @@ def main():
     app.bind('config', lambda: config)
     app.configuration = config
 
-    app.register(AppServiceProvider)
-    app.register(AppEntityProvider)
-    app.register(AppSystemProvider)
+    await app.register(AppServiceProvider)
+    await app.register(AppEntityProvider)
+    await app.register(AppSystemProvider)
 
-    app.boot()
+    await app.boot()
 
     ecs_manager = ECSManager(app)
-    ecs_manager.run()
-
-    while True:
-        time.sleep(config.get("system_tick", 1))
+    await ecs_manager.run()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

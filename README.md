@@ -28,9 +28,12 @@ Copy the plugin into `plugins/` directory. The framework will detect and run it 
 - **local_plugin** - Read data from the local storage - `./data/local_ingest` directory (default).
 
 ### Installation
-1. Run `docker-compose up` to start PostgreSQL and ElasticSearch.
-2. Run `main.py` to setup the database, indexes, and start collection and processing service.
-3. Run `npm install`, `npm run build`, and `npm run start` in `webui/` directory to start Web UI service.
+0. Run `python3 -m venv venv`, `source venv/bin/activate`, and `pip install -r requirements.txt`
+1. Run `docker-compose up` to start Kafka, PostgreSQL, and ElasticSearch.
+2. Compile rust_bindings as they contain Rust PyO3, using `maturin build --release`.
+3. Compile plugins if needed, as they may contain Rust PyO3, using `maturin build --release`.
+3. Run `main.py` to setup the database, indexes, and start collection and processing service.
+4. Run `npm install`, `npm run build`, and `npm run start` in `webui/` directory to start Web UI service.
 
 You can distribute and scale these components on many machines in order to get a good performance through terabytes of data.
 
@@ -39,7 +42,8 @@ The core system consists of the following main components:
 
 - Collection and processing agent (`main.py`)
 - ElasticSearch - Stores processed data and provides powerful search capabilities.
-- PostgreSQL - Stores metadata, configurations, and tracks processing states.
+- Kafka - Is an event queue.
+- PostgreSQL - Stores scrap metadata, tracks processing.
 - WebUI - Allows to search and analyze data through a web interface connected to ElasticSearch.
 
 ### WebUI

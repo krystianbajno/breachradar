@@ -9,7 +9,7 @@ class AppServiceProvider:
     def __init__(self, app):
         self.app = app
 
-    def register(self):
+    async def register(self):
         config = self.app.make('config')
 
         postgres_config = config.get_postgres_config()
@@ -31,6 +31,10 @@ class AppServiceProvider:
             self.app.make('ElasticRepository')
         ))
 
-    def boot(self):
-        self.app.make('MigrationService').run_migrations_if_needed()
+    async def boot(self):
+        postgres_service = self.app.make('PostgresRepository')
+        await postgres_service.connect()
+        
+        migration_service = self.app.make('MigrationService')
+        await migration_service.run_migrations_if_needed()
 

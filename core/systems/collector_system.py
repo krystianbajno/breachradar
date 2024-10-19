@@ -1,31 +1,79 @@
+import asyncio
+import json
 import logging
-import time
-from concurrent.futures import ThreadPoolExecutor
-
+from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
 from core.collectors.plugin_collector_interface import PluginCollectorInterface
-from core.events.event_system import EventSystem
-from core.events.event_types import EventType
+from core.entities.scrap import Scrap
 
 class CollectorSystem:
-    def __init__(self, event_system: EventSystem, collectors, polling_interval: int = 1):
+    def __init__(self, app, collectors):
         self.logger = logging.getLogger(__name__)
-        self.event_system = event_system
         self.collectors = collectors
-        self.polling_interval = polling_interval
+        self.kafka_config = app.configuration.get_kafka_config()
+        self.loop = asyncio.get_event_loop()
+        
+        self.producer = AIOKafkaProducer(
+            loop=self.loop,
+            bootstrap_servers=self.kafka_config['bootstrap_servers']
+        )
+        
+        self.notification_consumer = AIOKafkaConsumer(
+            self.kafka_config['notification_topic'],
+            loop=self.loop,
+            bootstrap_servers=self.kafka_config['bootstrap_servers'],
+            group_id="notification_group"
+        )
 
-    def run(self):
-        while True:
-            with ThreadPoolExecutor() as executor:
-                for collector in self.collectors:
-                    executor.submit(self._run_collector, collector)
-            time.sleep(self.polling_interval)
+        self.topic = self.kafka_config['topic']
+        self.processing_scraps = set()
 
-    def _run_collector(self, collector: PluginCollectorInterface):
+    async def run(self):
+        await self.producer.start()
+        await self.notification_consumer.start()
+        
         try:
-            scraps = collector.collect()
-            if not scraps:
-                return
-            for scrap in scraps:
-                self.event_system.trigger_event(EventType.SCRAP_COLLECTED, scrap)
+            tasks = [
+                self._run_collectors(),
+                self._consume_notifications()
+            ]
+            await asyncio.gather(*tasks)
+        finally:
+            await self.producer.stop()
+            await self.notification_consumer.stop()
+
+    async def _run_collectors(self):
+        tasks = [self._run_collector(collector) for collector in self.collectors]
+        await asyncio.gather(*tasks)
+
+    async def _run_collector(self, collector: PluginCollectorInterface):
+        while True:
+            try:
+                scraps = await collector.collect()
+                if scraps:
+                    for scrap in scraps:
+                        if scrap.hash in self.processing_scraps:
+                            continue
+                        self.processing_scraps.add(scrap.hash)
+                        await self._publish_scrap(scrap)
+                await asyncio.sleep(5)
+            except Exception as e:
+                self.logger.exception(f"Error running collector {collector}: {e}")
+
+    async def _publish_scrap(self, scrap: Scrap):
+        try:
+            scrap_data = scrap.to_json()
+            await self.producer.send_and_wait(self.topic, scrap_data.encode('utf-8'))
+            self.logger.info(f"Published scrap {scrap.filename} to Kafka.")
         except Exception as e:
-            self.logger.exception(f"Error running collector {collector}: {e}")
+            self.logger.exception(f"Error publishing scrap {scrap.filename} to Kafka: {e}")
+
+    async def _consume_notifications(self):
+        try:
+            async for msg in self.notification_consumer:
+                notification = json.loads(msg.value.decode('utf-8'))
+                scrap_hash = notification.get("hash")
+                if notification.get("status") == "PROCESSED" and scrap_hash in self.processing_scraps:
+                    self.processing_scraps.discard(scrap_hash)
+                    self.logger.info(f"Removed scrap {scrap_hash} from processing_scraps after notification.")
+        except Exception as e:
+            self.logger.exception(f"Error consuming notification message: {e}")

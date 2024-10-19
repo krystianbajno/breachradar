@@ -25,9 +25,9 @@ class App:
     def get_entity_by_id(self, identifier: str):
         return self.entities.get(identifier)
 
-    def register(self, provider_class):
+    async def register(self, provider_class):
         provider = provider_class(self)
-        provider.register()
+        await provider.register()
         self.providers.append(provider)
 
     def bind(self, interface: str, factory: Callable, lazy: bool = False):
@@ -44,16 +44,6 @@ class App:
             return service()
         return service
 
-    def boot(self):
+    async def boot(self):
         for provider in self.providers:
-            provider.boot()
-
-    def run_systems(self, tick: Callable):
-        def run_system(system):
-            while True:
-                system.handle(self.entities)
-                tick(self.entities)
-
-        for system in self.systems:
-            thread = Thread(target=run_system, args=(system,), name=f"{system.__class__.__name__}Thread")
-            thread.start()
+            await provider.boot()

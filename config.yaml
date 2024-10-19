@@ -1,4 +1,4 @@
-system_tick: 1
+system_tick: 5
 
 postgres:
   database: cti_breach_hunter

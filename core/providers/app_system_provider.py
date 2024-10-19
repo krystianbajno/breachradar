@@ -9,21 +9,23 @@ class AppSystemProvider:
         self.app = app
         self.plugin_loader = PluginLoader(app)
 
-    def register(self):
+    async def register(self):
         self.app.bind('EventSystem', lambda: EventSystem())
 
-    def boot(self):
+    async def boot(self):
         self.plugin_loader.load_plugins()
 
         collectors = self.plugin_loader.get_plugins('collector')
         processors = self.plugin_loader.get_plugins('processor')
 
-        collector_system = CollectorSystem(self.app.make('EventSystem'), collectors)
-
+        collector_system = CollectorSystem(self.app, collectors)
+        
+        postgres_repository = self.app.make('PostgresRepository')
+        
         processing_system = ProcessingSystem(
-            self.app.make('EventSystem'),
+            self.app,
             processors,
-            self.app.make('PostgresRepository')
+            postgres_repository
         )
 
         self.app.add_system(lambda app: collector_system)

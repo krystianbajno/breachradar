@@ -1,7 +1,9 @@
+import asyncio
 import logging
 import os
 import shutil
 import zstandard as zstd
+
 
 class LocalService:
     def __init__(self, directory: str, processed_directory: str):
@@ -11,10 +13,11 @@ class LocalService:
 
         os.makedirs(self.processed_directory, exist_ok=True)
 
-    def fetch_scrape_files(self):
+    async def fetch_scrape_files(self):
         scrape_files = []
         try:
-            for root, _, files in os.walk(self.directory):
+            loop = asyncio.get_running_loop()
+            for root, _, files in await loop.run_in_executor(None, os.walk, self.directory):
                 for file in files:
                     file_path = os.path.join(root, file)
                     scrape_files.append({
@@ -25,7 +28,7 @@ class LocalService:
         except Exception as e:
             self.logger.exception(f"Error fetching scrape files: {e}")
             return []
-
+        
     def read_file_content(self, file_path: str) -> bytes:
         try:
             if file_path.endswith('.zst'):
@@ -45,6 +48,21 @@ class LocalService:
         except Exception as e:
             self.logger.exception(f"Error decompressing file {file_path}: {e}")
             raise
+
+    async def fetch_scrape_files(self):
+            scrape_files = []
+            try:
+                for root, _, files in os.walk(self.directory):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        scrape_files.append({
+                            "file_path": file_path,
+                            "filename": os.path.basename(file_path),
+                        })
+                return scrape_files
+            except Exception as e:
+                self.logger.exception(f"Error fetching scrape files: {e}")
+                return []
 
     def move_file_to_processed(self, file_path: str):
         try:

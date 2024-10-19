@@ -82,3 +82,11 @@ class Config:
             "user": self.get('elasticsearch.user', 'elastic'),
             "password": self.get('elasticsearch.password', 'password'),
         }
+
+    def get_kafka_config(self):
+        return {
+            "bootstrap_servers": self.get('kafka.bootstrap_servers', 'localhost:9092'),
+            "topic": self.get('kafka.topic', 'scrap_topic'),
+            "notification_topic": self.get('kafka.processed_topic', 'processed_topic')
+
+        }

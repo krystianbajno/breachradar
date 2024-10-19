@@ -7,5 +7,5 @@ class PluginProcessorInterface(ABC):
         pass
 
     @abstractmethod
-    def process(self, scrap: Scrap):
+    async def process(self, scrap: Scrap):
         pass
