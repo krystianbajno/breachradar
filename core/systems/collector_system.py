@@ -1,7 +1,8 @@
 import asyncio
 import json
 import logging
-from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
+
+from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 from core.collectors.plugin_collector_interface import PluginCollectorInterface
 from core.entities.scrap import Scrap
 
@@ -26,17 +27,18 @@ class CollectorSystem:
 
         self.topic = self.kafka_config['topic']
         self.processing_scraps = set()
+        self.max_concurrent_collectors = 10
+        self.semaphore = asyncio.Semaphore(self.max_concurrent_collectors)
 
     async def run(self):
         await self.producer.start()
         await self.notification_consumer.start()
         
         try:
-            tasks = [
-                self._run_collectors(),
-                self._consume_notifications()
-            ]
-            await asyncio.gather(*tasks)
+            collector_task = asyncio.create_task(self._run_collectors())
+            notification_task = asyncio.create_task(self._consume_notifications())
+            
+            await asyncio.gather(collector_task, notification_task)
         finally:
             await self.producer.stop()
             await self.notification_consumer.stop()
@@ -48,14 +50,19 @@ class CollectorSystem:
     async def _run_collector(self, collector: PluginCollectorInterface):
         while True:
             try:
-                scraps = await collector.collect()
-                if scraps:
-                    for scrap in scraps:
-                        if scrap.hash in self.processing_scraps:
-                            continue
-                        self.processing_scraps.add(scrap.hash)
-                        await self._publish_scrap(scrap)
-                await asyncio.sleep(5)
+                async with self.semaphore:
+                    scraps = await collector.collect()
+
+                    if scraps:
+                        new_scraps = [
+                            scrap for scrap in scraps if scrap.hash not in self.processing_scraps
+                        ]
+
+                        for scrap in new_scraps:
+                            self.processing_scraps.add(scrap.hash)
+                            await self._publish_scrap(scrap)
+                        
+                await asyncio.sleep(1)
             except Exception as e:
                 self.logger.exception(f"Error running collector {collector}: {e}")
 
