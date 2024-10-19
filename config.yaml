@@ -1,0 +1,15 @@
+system_tick: 1
+
+postgres:
+  database: cti_breach_hunter
+  user: cti_user
+  password: cti_password
+  host: localhost
+  port: 5432
+
+elasticsearch:
+  host: localhost
+  port: 9200
+  scheme: http
+  user: elastic
+  password: elastic

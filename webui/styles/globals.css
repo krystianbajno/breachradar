@@ -1,0 +1,213 @@
+:root {
+  --primary-bg: #1a1a1a;
+  --primary-text: white;
+  --secondary-text: #726cf0;
+  --highlight-bg: cyan;
+  --header-bg-gradient: linear-gradient(to right, #4dba87, #2f9088);
+  --border-color: #3a3a3a;
+  --btn-hover-color: #726cf0;
+}
+
+body, h1 {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+  background: var(--primary-bg);
+  color: var(--primary-text);
+}
+
+h1 {
+  font-family: 'Poppins', serif;
+  font-weight: 600;
+  letter-spacing: 3px;
+}
+
+em {
+  background: var(--highlight-bg);
+  font-style: normal;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  min-height: 50px;
+  padding: 0.5rem 1rem;
+  background-image: var(--header-bg-gradient);
+  color: var(--primary-text);
+  margin-bottom: 1rem;
+}
+
+.header a {
+  color: var(--primary-text);
+  text-decoration: none;
+}
+
+.header-title {
+  font-family: 'Poppins', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.header-title::after {
+  content: ' ▸ ';
+  padding: 0 0.5rem;
+}
+
+.header-subtitle {
+  font-family: 'Poppins', sans-serif;
+  font-size: 1.2rem;
+}
+
+/* Container and Layout */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+  margin-top: 16px;
+}
+
+.search-panel {
+  display: flex;
+  align-items: flex-start;
+}
+
+.search-panel__filters {
+  flex: 0 0 40%;
+  max-width: 40%;
+  padding-right: 20px;
+  border-right: 1px solid var(--border-color);
+}
+
+.search-panel__results {
+  flex: 0 0 60%;
+  max-width: 60%;
+  padding-left: 20px;
+}
+
+/* Search Box */
+.searchbox {
+  margin-top: 32px;
+  width: 100%;
+}
+
+.ais-SearchBox-input {
+  background: var(--primary-bg);
+  color: var(--primary-text);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: none;
+  caret-color: var(--primary-text);
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Pagination */
+.pagination {
+  margin: 2rem auto;
+  text-align: center;
+}
+
+.hit__details {
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border-color);
+  word-wrap: break-word;
+  width: 100%;
+}
+
+.hit-details-panel {
+  display: flex;
+  justify-content: space-between;
+  cursor: pointer;
+  color: var(--primary-text);
+  font-weight: 800;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.9rem;
+}
+
+.hit-details-panel:hover {
+  color: var(--secondary-text);
+  transition: 1s;
+}
+
+.summary-no-marker summary::-webkit-details-marker,
+.summary-no-marker summary::marker,
+details summary::-webkit-details-marker {
+  display: none;
+}
+
+.hit-details-header {
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+}
+
+pre {
+  width: 100%;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  line-height: 1.2rem;
+}
+
+.main-hits-panel {
+  display: flex;
+  justify-content: center;
+  margin: 32px 0;
+  padding: 16px;
+  width: 100%;
+}
+
+.stats {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.download-btn {
+  background-color: var(--primary-bg);
+  color: var(--primary-text);
+  padding: 16px 32px;
+  font-size: 1rem;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-weight: 800;
+  font-family: 'Poppins', sans-serif;
+  transition: color 0.2s;
+    max-height: 64px;
+}
+
+.download-btn:hover {
+  color: var(--btn-hover-color);
+}
+
+.hash {
+  color: #bababa;
+  cursor: text;
+}
+.radar-emoji {
+  font-size: 4rem;
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+  cursor: crosshair;
+}
+
+.radar {
+  margin-left: 4px;
+  color: var(--secondary-text);
+  cursor: pointer;
+  font-weight: 800;
+  font-family: 'Poppins', sans-serif;
+}
+
+.version {
+  margin-top: 8px;
+  font-family: 'Poppins', sans-serif;
+}
+
+.no-a {
+  text-decoration: none;
+  color: var(--primary-text);
+}

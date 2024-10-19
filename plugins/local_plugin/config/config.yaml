@@ -1,0 +1,3 @@
+enabled: true
+watch_directory: "./data/local_ingest"
+processed_directory: "./data/local_ingest_processed"
