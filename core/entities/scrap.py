@@ -11,8 +11,8 @@ class Scrap:
     filename: Optional[str] = None
     file_path: Optional[str] = None
     state: str = 'PROCESSING'
-    timestamp: Optional[datetime] = None  # Use datetime for timestamp
-    occurrence_time: Optional[datetime] = None  # Use datetime for occurrence time
+    timestamp: Optional[datetime] = None
+    occurrence_time: Optional[datetime] = None
     attachments: List = field(default_factory=list)
 
     def to_json(self):

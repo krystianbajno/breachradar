@@ -1,5 +1,6 @@
 from core.events.event_system import EventSystem
 from core.plugins.plugin_loader import PluginLoader
+from core.services.smb_service import mount_downstream_smb, mount_upstream_smb
 from core.systems.collector_system import CollectorSystem
 from core.systems.processing_system import ProcessingSystem
 
@@ -13,6 +14,9 @@ class AppSystemProvider:
         self.app.bind('EventSystem', lambda: EventSystem())
 
     async def boot(self):
+        mount_upstream_smb(self.app.configuration)
+        mount_downstream_smb(self.app.configuration)
+        
         self.plugin_loader.load_plugins()
 
         collectors = self.plugin_loader.get_plugins('collector')
@@ -30,3 +34,5 @@ class AppSystemProvider:
 
         self.app.add_system(lambda app: collector_system)
         self.app.add_system(lambda app: processing_system)
+
+

@@ -3,21 +3,22 @@ import json
 import logging
 
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
-from core.collectors.plugin_collector_interface import PluginCollectorInterface
 from core.entities.scrap import Scrap
+from core.services.smb_service import move_file_to_upstream_smb
 
 class CollectorSystem:
     def __init__(self, app, collectors):
         self.logger = logging.getLogger(__name__)
         self.collectors = collectors
         self.kafka_config = app.configuration.get_kafka_config()
+        self.upstream_smb_config = app.configuration.get_upstream_smb_config()
         self.loop = asyncio.get_event_loop()
-        
+
         self.producer = AIOKafkaProducer(
             loop=self.loop,
             bootstrap_servers=self.kafka_config['bootstrap_servers']
         )
-        
+
         self.notification_consumer = AIOKafkaConsumer(
             self.kafka_config['notification_topic'],
             loop=self.loop,
@@ -33,12 +34,12 @@ class CollectorSystem:
     async def run(self):
         await self.producer.start()
         await self.notification_consumer.start()
-        
+
         try:
-            collector_task = asyncio.create_task(self._run_collectors())
-            notification_task = asyncio.create_task(self._consume_notifications())
-            
-            await asyncio.gather(collector_task, notification_task)
+            await asyncio.gather(
+                self._run_collectors(),
+                self._consume_notifications()
+            )
         finally:
             await self.producer.stop()
             await self.notification_consumer.stop()
@@ -47,29 +48,48 @@ class CollectorSystem:
         tasks = [self._run_collector(collector) for collector in self.collectors]
         await asyncio.gather(*tasks)
 
-    async def _run_collector(self, collector: PluginCollectorInterface):
+    async def _run_collector(self, collector):
         while True:
+            await self._collect_scraps(collector)
+            await asyncio.sleep(1)
+
+    async def _collect_scraps(self, collector):
+        async with self.semaphore:
             try:
-                async with self.semaphore:
-                    scraps = await collector.collect()
+                scraps = await collector.collect()
+                if not scraps:
+                    return
 
-                    if scraps:
-                        new_scraps = [
-                            scrap for scrap in scraps if scrap.hash not in self.processing_scraps
-                        ]
+                for scrap in scraps:
+                    if scrap.hash in self.processing_scraps:
+                        continue
 
-                        for scrap in new_scraps:
-                            self.processing_scraps.add(scrap.hash)
-                            await self._publish_scrap(scrap)
-                        
-                await asyncio.sleep(1)
+                    self.processing_scraps.add(scrap.hash)
+                    smb_paths = move_file_to_upstream_smb(scrap.file_path, scrap.filename, self.upstream_smb_config)
+
+                    if smb_paths:
+                        await self._handle_new_scrap(scrap, smb_paths)
+
             except Exception as e:
                 self.logger.exception(f"Error running collector {collector}: {e}")
 
-    async def _publish_scrap(self, scrap: Scrap):
+    async def _handle_new_scrap(self, scrap: Scrap, smb_paths: dict):
         try:
-            scrap_data = scrap.to_json()
-            await self.producer.send_and_wait(self.topic, scrap_data.encode('utf-8'))
+            await self._publish_scrap(scrap, smb_paths)
+        except Exception as e:
+            self.logger.exception(f"Error handling new scrap {scrap.filename}: {e}")
+        finally:
+            self.processing_scraps.remove(scrap.hash)
+
+    async def _publish_scrap(self, scrap: Scrap, smb_paths: dict):
+        try:
+            message = {
+                "scrap_data": scrap.to_json(),
+                "mounted_path": smb_paths.get("mounted_path"),
+                "unc_path": smb_paths.get("unc_path")
+            }
+
+            await self.producer.send_and_wait(self.topic, json.dumps(message).encode('utf-8'))
             self.logger.info(f"Published scrap {scrap.filename} to Kafka.")
         except Exception as e:
             self.logger.exception(f"Error publishing scrap {scrap.filename} to Kafka: {e}")
@@ -80,7 +100,7 @@ class CollectorSystem:
                 notification = json.loads(msg.value.decode('utf-8'))
                 scrap_hash = notification.get("hash")
                 if notification.get("status") == "PROCESSED" and scrap_hash in self.processing_scraps:
-                    self.processing_scraps.discard(scrap_hash)
-                    self.logger.info(f"Removed scrap {scrap_hash} from processing_scraps after notification.")
+                    self.processing_scraps.remove(scrap_hash)
+                    self.logger.info(f"Processed and removed scrap {scrap_hash}")
         except Exception as e:
             self.logger.exception(f"Error consuming notification message: {e}")

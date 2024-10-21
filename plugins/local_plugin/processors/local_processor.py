@@ -19,6 +19,6 @@ class LocalProcessor(PluginProcessorInterface):
 
         await self.core_processor.process_scrap(scrap)
 
-        self.local_service.move_file_to_processed(scrap.file_path)
+        # self.local_service.move_file_to_processed(scrap.old_file_path)
 
         self.logger.info(f"File {scrap.filename} processed and moved.")

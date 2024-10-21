@@ -48,6 +48,7 @@ class MigrationService:
         migration_files = sorted(
             f for f in os.listdir(self.migrations_dir) if f.endswith('.sql')
         )
+
         return migration_files
 
     async def _apply_migration(self, connection, migration_file):

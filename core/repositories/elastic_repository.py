@@ -1,5 +1,4 @@
 import logging
-from typing import List
 from elasticsearch import Elasticsearch, NotFoundError
 from core.entities.elastic_chunk import ElasticChunk
 from core.entities.scrap import Scrap

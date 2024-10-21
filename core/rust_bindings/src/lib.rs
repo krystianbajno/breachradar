@@ -25,26 +25,74 @@ fn calculate_file_hash(file_path: &str) -> PyResult<String> {
 }
 
 #[pyfunction]
-fn scan_file_for_patterns(file_path: &str, patterns: Vec<&str>) -> PyResult<Vec<String>> {
+fn scan_file_for_patterns(file_path: &str, patterns: Vec<(&str, &str)>) -> PyResult<Vec<(String, String)>> {
     let file = File::open(file_path).map_err(|e| PyIOError::new_err(format!("Failed to open file: {}", e)))?;
     let reader = BufReader::new(file);
 
-    let regexes: Vec<Regex> = patterns.iter()
-        .map(|p| Regex::new(p).map_err(|e| PyErr::new::<PyIOError, _>(format!("Invalid regex pattern: {}", e))))
+    let regexes: Vec<(Regex, &str)> = patterns.iter()
+        .map(|(pattern, class)| {
+            Regex::new(pattern)
+                .map(|regex| (regex, *class))
+                .map_err(|e| PyErr::new::<PyIOError, _>(format!("Invalid regex pattern: {}", e)))
+        })
         .collect::<Result<Vec<_>, _>>()?;
 
     let mut matches = Vec::new();
 
     for line in reader.lines() {
         let line = line.map_err(|e| PyIOError::new_err(format!("Failed to read line: {}", e)))?;
-        for re in &regexes {
+        
+        for (re, class) in &regexes {
             for mat in re.find_iter(&line) {
-                matches.push(mat.as_str().to_string());
+                matches.push((mat.as_str().to_string(), class.to_string()));
             }
         }
     }
 
     Ok(matches)
+}
+
+#[pyfunction]
+fn process_scrap_in_rust(
+    file_path: &str,
+    patterns_and_classes: Vec<(&str, &str)>,
+    is_hash_processed: bool
+) -> PyResult<Option<(String, Vec<(String, String)>)>> {
+    if is_hash_processed {
+        return Ok(None);
+    }
+
+    let file = File::open(file_path)
+        .map_err(|e| PyIOError::new_err(format!("Failed to open file: {}", e)))?;
+    let reader = BufReader::new(file);
+
+    let regexes: Vec<(Regex, &str)> = patterns_and_classes.iter()
+        .map(|(pattern, class)| {
+            Regex::new(pattern)
+                .map(|regex| (regex, *class))
+                .map_err(|e| PyIOError::new_err(format!("Invalid regex pattern: {}", e)))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let mut matches = Vec::new();
+
+    for line in reader.lines() {
+        let line = line
+            .map_err(|e| PyIOError::new_err(format!("Failed to read line: {}", e)))?;
+        for (re, class) in &regexes {
+            for mat in re.find_iter(&line) {
+                matches.push((mat.as_str().to_string(), class.to_string()));
+            }
+        }
+    }
+
+    if matches.is_empty() {
+        return Ok(None);
+    }
+
+    let scrap_class = matches[0].1.clone();
+
+    Ok(Some((scrap_class, matches)))
 }
 
 #[pyfunction]
@@ -81,6 +129,7 @@ fn split_file_into_chunks(file_path: &str, chunk_size: usize) -> PyResult<Vec<(u
 #[pymodule]
 fn rust_bindings(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(calculate_file_hash, m)?)?;
+    m.add_function(wrap_pyfunction!(process_scrap_in_rust, m)?)?;
     m.add_function(wrap_pyfunction!(scan_file_for_patterns, m)?)?;
     m.add_function(wrap_pyfunction!(split_file_into_chunks, m)?)?;
     Ok(())

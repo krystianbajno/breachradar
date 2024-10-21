@@ -13,3 +13,25 @@ elasticsearch:
   scheme: http
   user: elastic
   password: elastic
+
+kafka:
+  bootstrap_servers: localhost:9092
+  topic: scrap_topic
+  notification_topic: processed_topic
+
+processing: true
+collecting: true
+
+smb_servers:
+  - name: smb_server_1
+    share: //smb-server1/scraps
+    username: smbuser1
+    password: smbpassword1
+    mount_point: /mnt/smb_scraps1
+
+upstream_smb:
+  name: smb_server_1
+  share: //smb-server1/scraps
+  username: smbuser1
+  password: smbpassword1
+  mount_point: /mnt/smb_scraps1
