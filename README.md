@@ -9,13 +9,15 @@
                                               Krystian Bajno 2024
 ```
 
-BreachRadar is an open-source Cyber Threat Intelligence (CTI) platform designed to collect and process data from various sources to detect potential security breaches and leaked credentials. It operates using Elasticsearch, PostgreSQL, and Kafka, with a custom Python framework built on an Entity-Component-System (ECS) architecture. The plugin-based system allows seamless integration of new collectors, processors, and data analysis tools.
+BreachRadar is an open-source Cyber Threat Intelligence (CTI) platform designed to collect and process data from various sources to detect potential security breaches and leaked credentials. It operates using Elasticsearch, PostgreSQL, SMB, and Kafka, with a custom Python framework built on an Entity-Component-System (ECS) architecture. The plugin-based system allows for integration of new collectors, processors, and data analysis tools.
+
+<img src="https://raw.githubusercontent.com/krystianbajno/krystianbajno/main/img/breachradar-arch.png"/>
 
 # Features
 - **Web Interface** - Provides a Web UI connected to ElasticSearch for searching data using keywords.
 - **Plugin Support** - It is possible to extend functionality by adding new collectors, processors, and analyzers as plugins.
 - **Event-Driven Processing** - Decouples collectors and processors using an event system.
-- **Data persistence** - Uses PostgreSQL and Elasticsearch for data storage and searching.
+- **Data persistence** - Uses PostgreSQL and Elasticsearch.
 - **Credential Detection** - Uses regex patterns stored in a database to detect leaked credentials.
 - **Hashing and Tracking** - Hashes collected data and tracks origins based on the first occurrence of the same hash. Does not store same file twice, only a reference.
 
@@ -32,10 +34,18 @@ Copy the plugin into `plugins/` directory. The framework will detect and run it 
 1. Run `docker-compose up` to start Kafka, PostgreSQL, and ElasticSearch.
 2. Compile rust_bindings as they contain Rust PyO3, using `maturin build --release` and `pip install target/wheels/*.whl`.
 3. Compile plugins if needed, as they may contain Rust PyO3, using `maturin build --release` and `pip install target/wheels/*.whl`.
-3. Run `main.py` to setup the database, indexes, and start collection and processing service.
+3. Run `main.py` to setup the database, indexes, and start collection and processing services.
 4. Run `npm install`, `npm run build`, and `npm run start` in `webui/` directory to start Web UI service.
 
 You can distribute and scale these components on many machines in order to get a good performance through terabytes of data.
+
+In order to disable processing or collection, modify `config.yaml` and set
+
+```yaml
+processing: false
+# or
+collecting: false
+```
 
 # Architecture Overview
 The core system consists of the following main components:
@@ -43,6 +53,7 @@ The core system consists of the following main components:
 - Collection and processing agent (`main.py`)
 - ElasticSearch - Stores processed data and provides powerful search capabilities.
 - Kafka - Is an event queue.
+- SMB Server - Hosts scrapes data to process.
 - PostgreSQL - Stores scrap metadata, tracks processing.
 - WebUI - Allows to search and analyze data through a web interface connected to ElasticSearch.
 
@@ -52,7 +63,7 @@ The core system consists of the following main components:
 ### Core
 - **Core Processor** - Provides core functionalities like credential detection using regex patterns read from database and manages processing state.
 - **Event System** - Manages communication between components through events.
-- **Repositories** - Handles data storage in PostgreSQL and Elasticsearch.
+- **Repositories** - Handles queries to PostgreSQL and Elasticsearch.
 - **Providers** - Manage the initialization and configuration of various system components and services.
 - **Migrations** - Manage the database migrations.
 
