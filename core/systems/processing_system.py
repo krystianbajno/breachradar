@@ -1,9 +1,13 @@
 import asyncio
 import logging
+import json
+import os
+import platform
+
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 from core.entities.scrap import Scrap
 from core.repositories.postgres_repository import PostgresRepository
-import json 
+from core.services.smb_service import remove_file_from_smb
 
 class ProcessingSystem:
     def __init__(self, app, processors, repository: PostgresRepository):
@@ -13,7 +17,7 @@ class ProcessingSystem:
         self.kafka_config = app.configuration.get_kafka_config()
         self.processing_scraps = set()
         self.max_concurrent_scraps = 100
-    
+
         self.consumer = AIOKafkaConsumer(
             self.kafka_config['topic'],
             bootstrap_servers=self.kafka_config['bootstrap_servers'],
@@ -35,25 +39,35 @@ class ProcessingSystem:
         try:
             while True:
                 msgs = await self.consumer.getmany(timeout_ms=1000)
-
                 tasks = []
                 for topic_partition, batch in msgs.items():
                     for msg in batch:
-                        scrap_data = msg.value.decode('utf-8')
-                        scrap = Scrap.from_json(scrap_data)
-                        
+                        scrap_data = json.loads(msg.value.decode('utf-8'))
+                        scrap = Scrap.from_json(scrap_data['scrap_data'])
+
                         if scrap.hash in self.processing_scraps:
                             continue
-                        
+
                         self.processing_scraps.add(scrap.hash)
                         
+                        file_path = self._get_platform_specific_path(scrap_data)
+
+                        scrap.file_path = file_path
+                        
                         tasks.append(self.process_with_semaphore(scrap))
+                        remove_file_from_smb(file_path)
 
                 await asyncio.gather(*tasks)
                 await self.consumer.commit()
         finally:
             await self.consumer.stop()
             await self.producer.stop()
+
+    def _get_platform_specific_path(self, scrap_data):
+        if platform.system() == 'Windows':
+            return scrap_data.get('unc_path')
+        else:
+            return scrap_data.get('mounted_path')
 
     async def process_with_semaphore(self, scrap):
         async with self.semaphore:

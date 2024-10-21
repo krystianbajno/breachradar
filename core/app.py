@@ -1,4 +1,3 @@
-from threading import Thread
 from typing import Any, Callable, Dict, List
 
 class App:

@@ -9,7 +9,7 @@
                                               Krystian Bajno 2024
 ```
 
-**BreachRadar** is an open-source Cyber Threat Intelligence (CTI) platform designed to collect and process data from various sources to detect potential security breaches and leaked credentials. It operates using ElasticSearch and a custom Python framework built on an Entity-Component-System (ECS) architecture with an event-driven design. The plugin system allows for easy integration of collection, processing, and analysis of new data sources.
+BreachRadar is an open-source Cyber Threat Intelligence (CTI) platform designed to collect and process data from various sources to detect potential security breaches and leaked credentials. It operates using Elasticsearch, PostgreSQL, and Kafka, with a custom Python framework built on an Entity-Component-System (ECS) architecture. The plugin-based system allows seamless integration of new collectors, processors, and data analysis tools.
 
 # Features
 - **Web Interface** - Provides a Web UI connected to ElasticSearch for searching data using keywords.
@@ -30,8 +30,8 @@ Copy the plugin into `plugins/` directory. The framework will detect and run it 
 ### Installation
 0. Run `python3 -m venv venv`, `source venv/bin/activate`, and `pip install -r requirements.txt`
 1. Run `docker-compose up` to start Kafka, PostgreSQL, and ElasticSearch.
-2. Compile rust_bindings as they contain Rust PyO3, using `maturin build --release`.
-3. Compile plugins if needed, as they may contain Rust PyO3, using `maturin build --release`.
+2. Compile rust_bindings as they contain Rust PyO3, using `maturin build --release` and `pip install target/wheels/*.whl`.
+3. Compile plugins if needed, as they may contain Rust PyO3, using `maturin build --release` and `pip install target/wheels/*.whl`.
 3. Run `main.py` to setup the database, indexes, and start collection and processing service.
 4. Run `npm install`, `npm run build`, and `npm run start` in `webui/` directory to start Web UI service.
 

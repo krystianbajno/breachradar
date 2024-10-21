@@ -1,6 +1,7 @@
-CREATE TABLE IF NOT EXISTS credential_patterns (
+CREATE TABLE IF NOT EXISTS classifier_patterns (
     id SERIAL PRIMARY KEY,
-    pattern TEXT NOT NULL
+    pattern TEXT NOT NULL,
+    class VARCHAR NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS scrapes (
@@ -13,7 +14,8 @@ CREATE TABLE IF NOT EXISTS scrapes (
     state VARCHAR NOT NULL,
     timestamp TIMESTAMP,
     occurrence_time TIMESTAMP,
-    processing_start_time TIMESTAMP
+    processing_start_time TIMESTAMP,
+    class VARCHAR
 );
 
 CREATE TABLE IF NOT EXISTS elastic_chunks (

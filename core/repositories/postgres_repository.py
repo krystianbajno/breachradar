@@ -57,6 +57,19 @@ class PostgresRepository:
         except Exception as e:
             self.logger.error(f"Failed to update scrap {scrap_id}: {e}")
 
+    async def update_scrap_class(self, scrap_id: int, scrap_class: str):
+        query = """
+            UPDATE scrapes
+            SET class = $1
+            WHERE id = $2
+        """
+        try:
+            async with self.pool.acquire() as conn:
+                await conn.execute(query, scrap_class, scrap_id)
+                self.logger.info(f"Scrap ID {scrap_id} updated with class '{scrap_class}'.")
+        except Exception as e:
+            self.logger.error(f"Failed to update scrap class for scrap ID {scrap_id}: {e}")
+            
     async def get_scrap_by_id(self, scrap_id):
         query = """
         SELECT id, hash, source, filename, file_path, state, timestamp, occurrence_time
@@ -121,12 +134,12 @@ class PostgresRepository:
             self.logger.error(f"Failed to fetch processing filenames: {e}")
             return []
 
-    async def get_credential_patterns(self):
-        query = "SELECT pattern FROM credential_patterns"
+    async def get_classifier_patterns(self):
+        query = "SELECT pattern, class FROM classifier_patterns"
         try:
             async with self.pool.acquire() as conn:
                 rows = await conn.fetch(query)
-                return [row['pattern'] for row in rows]
+                return [(row['pattern'], row["class"]) for row in rows]
         except Exception as e:
             self.logger.error(f"Failed to fetch credential patterns: {e}")
             return []

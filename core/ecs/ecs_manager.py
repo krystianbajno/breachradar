@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from core.app import App
 
 class ECSManager:
@@ -6,8 +7,13 @@ class ECSManager:
         self.app = app
 
     async def run(self):
-        collector_system = self.app.get_system('CollectorSystem')
-        processing_system = self.app.get_system('ProcessingSystem')
+        if self.app.configuration.get('collecting', True):
+            collector_system = self.app.get_system('CollectorSystem')
+            logging.info("Collector system enabled.")
+            
+        if self.app.configuration.get('processing', True):
+            processing_system = self.app.get_system('ProcessingSystem')
+            logging.info("Processing system enabled.")
 
         await asyncio.gather(
             collector_system.run(),

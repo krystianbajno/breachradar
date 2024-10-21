@@ -1,9 +1,15 @@
 data/local_ingest/
 data/scraps/*
 data/postgres_data/
-data/es_data/*
+data/es_data/
+data/samba_share/
 data/local_ingest_processed/
 venv
+
+commands/breachradar-micro/data/data-processed
+commands/breachradar-micro/data/data-processing
+commands/breachradar-micro/.env
+
 
 .env
 .env.local

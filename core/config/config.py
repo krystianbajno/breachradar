@@ -4,7 +4,6 @@ import os
 from dotenv import load_dotenv
 import yaml
 
-
 class Config:
     def __init__(self, env_file='.env', config_file='config.yaml'):
         self.logger = logging.getLogger(__name__)
@@ -33,15 +32,34 @@ class Config:
         except yaml.YAMLError as e:
             self.logger.error(f"Error parsing YAML config: {e}")
             return {}
-
+        
     def _override_with_env_variables(self):
         for key, value in os.environ.items():
             if '__' in key:
-                keys = key.lower().split('__')
+                keys = key.lower().replace('__', '.').split('.')
                 config_section = self.config_data
+
                 for subkey in keys[:-1]:
-                    config_section = config_section.setdefault(subkey, {})
-                config_section[keys[-1]] = value
+                    if subkey.isdigit():
+                        subkey = int(subkey)
+                        if not isinstance(config_section, list):
+                            config_section = []
+                            self.config_data[keys[0]] = config_section
+                        while len(config_section) <= subkey:
+                            config_section.append({})
+                        config_section = config_section[subkey]
+                    else:
+                        config_section = config_section.setdefault(subkey, {})
+
+                if keys[-1].isdigit():
+                    index = int(keys[-1])
+                    if not isinstance(config_section, list):
+                        config_section = []
+                    while len(config_section) <= index:
+                        config_section.append({})
+                    config_section[index] = value
+                else:
+                    config_section[keys[-1]] = value
             else:
                 self.config_data[key.lower()] = value
 
@@ -88,5 +106,35 @@ class Config:
             "bootstrap_servers": self.get('kafka.bootstrap_servers', 'localhost:9092'),
             "topic": self.get('kafka.topic', 'scrap_topic'),
             "notification_topic": self.get('kafka.processed_topic', 'processed_topic')
-
         }
+        
+    def get_smb_servers_config(self):
+        smb_servers = self.config_data.get("smb_servers", [])
+
+        if not smb_servers:
+            self.logger.warning("No SMB servers configured.")
+            return smb_servers
+        
+        formatted_smb_servers = []
+        for index, smb_server in enumerate(smb_servers):
+            formatted_smb_servers.append({
+                "enabled": smb_server.get("enabled", False),
+                "share": smb_server.get("share", f'//smb-server{index}/scraps'),
+                "username": smb_server.get("username", f'smbuser{index}'),
+                "password": smb_server.get("password", f'smbpassword{index}'),
+                "anonymous": smb_server.get("anonymous", False),
+                "mount_point": smb_server.get("mount_point", f'/mnt/smb_scraps{index}'),
+            })
+
+        return formatted_smb_servers
+
+    def get_upstream_smb_config(self):
+            config = {
+                "share": self.get('upstream_smb.share', '//upstream-server/scraps'),
+                "username": self.get('upstream_smb.username', 'upstream_user'),
+                "password": self.get('upstream_smb.password', 'upstream_password'),
+                "mount_point": self.get('upstream_smb.mount_point', '/mnt/upstream_scraps'),
+                "anonymous": self.get('upstream_smb.anonymous', False),
+            }
+                        
+            return config
